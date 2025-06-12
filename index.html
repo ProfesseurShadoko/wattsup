@@ -91,7 +91,6 @@
         </div>
 
         <div id="info-panel">
-            <div>α: <span id="info-alpha">0.0°</span></div>
             <div>β: <span id="info-beta">0.0°</span></div>
             <div>γ: <span id="info-gamma">0.0°</span></div>
             <div>gₓ: <span id="info-gx">0.00</span></div>
@@ -102,31 +101,16 @@
         
     <script>
 
-        offsetBeta = 0;
-        offsetGamma = 0;
+        let offsetBeta = 0;
+        let offsetGamma = 0;
 
-        current_alpha = 0;
-        current_beta = 0;
-        current_gamma = 0; // we will modify these randomly
+        let currentBeta = 0; // without offset here --> used to define the offsets
+        let currentGamma = 0; // without offset here
 
-        // gravity: gx = -sin(gamma), gy = sin(beta) with x and y in the plan of the screen
+        function update() {
+            beta = currentBeta; // rotation around x-axis
+            gamma = currentGamma; // rotation around y-axis
 
-        function getAlphaBetaGammaRandom() {
-            // random increase of alpha beta gamma
-            current_alpha += Math.random() * 10 - 5; // random change between -5 and +5
-            current_beta += Math.random() * 10 - 5; // random change between -5 and +5
-            current_gamma += Math.random() * 10 - 5; // random change between -5 and +5
-
-            // clamp all values between -45 and 45
-            current_alpha = Math.max(-45, Math.min(45, current_alpha));
-            current_beta = Math.max(-45, Math.min(45, current_beta));
-            current_gamma = Math.max(-45, Math.min(45, current_gamma));
-
-            // return the values
-            return [current_alpha, current_beta, current_gamma];
-        }
-
-        function updateLevel(alpha, beta, gamma) {
             beta -= offsetBeta; // apply the offset to beta
             gamma -= offsetGamma; // apply the offset to gamma
 
@@ -149,31 +133,23 @@
             inner.style.transform = `translate(-50%, -50%) translate(${shiftX}%, ${shiftY}%)`;
 
             // let's update the info panel
-            document.getElementById('info-alpha').textContent = alpha.toFixed(1) + '°';
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
             document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
             document.getElementById('info-gx').textContent = (-Math.sin(gammaRad)).toFixed(2);
             document.getElementById('info-gy').textContent = (Math.sin(betaRad)).toFixed(2);
         }
 
-        //setInterval(() => {
-        //    const [a, b, g] = getAlphaBetaGammaRandom();
-        //    updateLevel(a, b, g);
-        //}, 1000);
 
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', (event) => {
-                const alpha = event.alpha || 0; // rotation around z-axis
-                const beta = event.beta || 0;   // rotation around x-axis
-                const gamma = event.gamma || 0; // rotation around y-axis
-
-                updateLevel(alpha, beta, gamma);
+                currentBeta = event.beta || 0; // rotation around x-axis
+                currentGamma = event.gamma || 0; // rotation around y-axis
+                update();
             });
         }
 
         const innerBubble = document.querySelector('.inner');
         innerBubble.addEventListener('click', () => {
-            const [, currentBeta, currentGamma] = getAlphaBetaGamma();
             offsetBeta = currentBeta;
             offsetGamma = currentGamma;
             console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
