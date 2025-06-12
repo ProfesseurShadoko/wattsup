@@ -177,10 +177,21 @@
 
         let offsetBeta = 0;
         let offsetGamma = 0;
-        let heigth = 1.8;
-        let weight = 75;
-        let bikeWeight = 10;
-        let averageWindowSeconds = 5; // how many seconds to average the speed and slope over
+        const averageWindowSeconds = 5; // how many seconds to average the speed and slope over
+
+        const height = 1.8; // m
+        const weight = 75; // kg
+        const bikeWeight = 10; // kg
+
+        const Cd = 1.0; // for cyclist on aerobars
+        const Crr = 0.005; // rolling resistance coefficient --> value from wikipedia, couldn't find anything better :(
+        const rho0 = 1.225; // kg/m^3 --> air density at sea level
+        const L = 0.0065; // K/m --> temperature gradient in the atmosphere
+        const T0 = 288.15; // K --> standard temperature at sea level
+        const R = 287.05; // J/(kg*K) --> gas constant for dry air (aka R/M with M molar mass)
+        const g = 9.807; // m/s^2 --> gravity acceleration
+
+        // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
         /**
         !-- Live variables --!
@@ -202,6 +213,7 @@
         const betaBuffer = []; // array of { time: <ms>, value: float }
         const gammaBuffer = [];
         const speedBuffer = [];
+        const altitudeBuffer = [];
 
         let currentSlope = 0;
         let currentSpeed = 0;
@@ -232,13 +244,42 @@
         }
 
 
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+        /**
+        !-- Models --!
+        */
+
+        const projectedFrontalArea = 0.0293 * (height**0.725) * (weight**0.425) + 0.0604;
+        const totalWeight = weight + bikeWeight; // total weight of the cyclist and the bike
+        
+        function getRho() {
+            altitudeAvg = getAverageFromBuffer(altitudeBuffer);
+            return rho0 * (1 - (L * altitudeAvg) / T0) ** (g / (R * L) - 1);
+        }
+        function getDragPower() {
+            const rho = getRho();
+            return 0.5 * Cd * projectedFrontalArea * rho * currentSpeed**3; // in W
+        }
+        function getGravityPower() {
+            const slopeRad = getAverageFromBuffer(betaBuffer); // slope in radians
+            return totalWeight * g * Math.sin(slopeRad* (Math.PI / 180)) * currentSpeed; // in W
+        }
+        function getRollingPower() {
+            const slopeRad = getAverageFromBuffer(betaBuffer); // slope in radians
+            return Crr * totalWeight * g * Math.cos(slopeRad * (Math.PI / 180)) * currentSpeed; // in W
+        }
+
+
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------
+
         /**
         !-- Update Display --!
         */
 
         function updateSlope() {
-            beta = currentBeta; // rotation around x-axis
-            gamma = currentGamma; // rotation around y-axis
+            let beta = currentBeta; // rotation around x-axis
+            let gamma = currentGamma; // rotation around y-axis
 
             beta -= offsetBeta; // apply the offset to beta
             gamma -= offsetGamma; // apply the offset to gamma
@@ -285,7 +326,7 @@
             // let's update the info panel
             document.getElementById('info-lon').textContent = longitude.toFixed(6) + '°';
             document.getElementById('info-lat').textContent = latitude.toFixed(6) + '°';
-            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' km';
+            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' m';
 
             // let's update the speed display
             currentSpeed = getAverageFromBuffer(speedBuffer);
@@ -295,12 +336,27 @@
         }
 
         function updatePower() {
-            // TODO
+            currentDragPower = getDragPower();
+            currentGravityPower = getGravityPower();
+            currentRollingPower = getRollingPower();
+            currentPower = currentDragPower + currentGravityPower + currentRollingPower;
+            document.getElementById('drag-display').textContent = Math.round(currentDragPower) + ' W';
+            document.getElementById('gravity-display').textContent = Math.round(currentGravityPower) + ' W';
+            document.getElementById('power-display').textContent = Math.round(currentPower) + ' W';
         }
 
 
+
+
+
+
+
+
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+
         /**
-        !-- Event Listenenrs --!
+        !-- Event Listeners --!
         */
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', (event) => {
@@ -332,8 +388,10 @@
                 longitude = position.coords.longitude;
                 latitude = position.coords.latitude;
                 altitude = position.coords.altitude || 0; // altitude might be null
-                speed = position.coords.speed || -0.1; // speed might be null
+                speed = position.coords.speed || 0; // speed might be null
+                
                 addToBuffer(speed, speedBuffer);
+                addToBuffer(altitude, altitudeBuffer);
 
                 updateGPS();
             }, (error) => {}, {enableHighAccuracy: true});
