@@ -189,14 +189,27 @@
         let currentBeta = 0; // without offset here --> used to define the offsets
         let currentGamma = 0;
 
+
         let longitude = 0;
         let latitude = 0;
         let altitude = 0;
         let speed = 0;
 
+        /**
+        !-- Buffer Variables --!
+        */
         // let's create some value buffers to average physical values over time
-        const slopeBuffer = []; // array of { time: <ms>, value: float }
+        const betaBuffer = []; // array of { time: <ms>, value: float }
+        const gammaBuffer = [];
         const speedBuffer = [];
+
+        let currentSlope = 0;
+        let currentSpeed = 0;
+        let currentGravityPower = 0;
+        let currentDragPower = 0;
+        let currentRollingPower = 0;
+        let currentPower = 0;
+
 
         function addToBuffer(value, buffer) {
             const now = Date.now(); // time in ms, hence the *1000 later
@@ -232,11 +245,12 @@
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
-            const slope = Math.round(getAverageFromBuffer(slopeBuffer));
+            const bufferBetaRad = getAverageFromBuffer(betaBuffer) * (Math.PI / 180);
+            currentSlope = Math.tan(bufferBetaRad) * 100; // slope in %
 
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
-            angleDisplay.textContent = slope + '%';
+            angleDisplay.textContent = currentSlope + '%';
 
             // let's compute the bubble offset
             const vw    = window.innerWidth;
@@ -279,8 +293,10 @@
                 currentGamma = event.gamma || 0; // rotation around y-axis
                 
                 correctedBeta = currentBeta - offsetBeta;
-                currentSlope = Math.tan(correctedBeta * (Math.PI / 180)) * 100; // slope in %
-                addToBuffer(currentSlope, slopeBuffer);
+                correctedGamma = currentGamma - offsetGamma;
+
+                addToBuffer(correctedBeta, betaBuffer);
+                addToBuffer(correctedGamma, gammaBuffer);
                 updateSlope();
             });
         }
