@@ -220,6 +220,8 @@
             angleDisplay.textContent = slope + '%';
 
             // let's compute the bubble offset
+            const vw    = window.innerWidth;
+            const vh    = window.innerHeight;
             const d = inner.getBoundingClientRect().width; // diameter of the inner bubble
             const MAX_PCT = 0.30; // maximum offset in percent of the inner bubble diameter
 
