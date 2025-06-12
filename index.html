@@ -31,6 +31,7 @@
                 transform: translate(-50%, -50%);
                 width: var(--diam-outer);
                 height: var(--diam-outer);
+                overflow: hidden; /*avoid scroll bars when circle goes out of frame*/
             }
 
             .circle {
@@ -156,7 +157,7 @@
             <div>gy: <span id="info-gy">0.00</span></div>-->
             <div>lon: <span id="info-lon">0.0°</span></div>
             <div>lat: <span id="info-lat">0.0°</span></div>
-            <div>alt: <span id="info-alt">0.0 m</span></div>
+            <div>alt: <span id="info-alt">0.0 m</span></div>
         </div>
 
     
