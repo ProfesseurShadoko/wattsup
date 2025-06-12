@@ -52,15 +52,7 @@
                 background-color: rgba(255, 255, 255, 0.2);
             }
 
-            #angle-display {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-size: calc(var(--diam-inner) * 0.2);
-                text-align: center;
-            }
+            
 
             #info-panel {
                 position: fixed;
@@ -78,6 +70,50 @@
                 #info-panel div {
                 margin: 0.2em 0;
                 }
+            
+            .bubble-data {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                display: grid;
+                grid-template-rows: auto 1fr auto;
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+                justify-items: center;
+                text-align: center;
+                color: #fff;
+                font-family: sans-serif;
+                pointer-events: none;
+                padding: 15%;            /* <-- inset everything 10% from the border */
+                box-sizing: border-box;  /* <-- make padding count inside the 100% */
+            }
+
+            /* small fields on top */
+            .top-left  { grid-row: 1; grid-column: 1; }
+            .top-right { grid-row: 1; grid-column: 2; }
+
+            /* big center field, spans both columns */
+            .center {
+            grid-row: 2; grid-column: 1 / span 2;
+            }
+
+            /* small fields below */
+            .bottom-left  { grid-row: 3; grid-column: 1; }
+            .bottom-right { grid-row: 3; grid-column: 2; }
+
+            /* label vs value styling */
+            .bubble-data .label {
+                font-size: 3vmin;
+                opacity: 0.8;
+            }
+            .bubble-data .value {
+                font-size: 4vmin;
+            }
+
+            .bubble-data .value.big {
+                font-size: 7vmin;
+                font-weight: bold;
+            }
 
         </style>
     </head>
@@ -86,28 +122,83 @@
         <div id="circle-container">
             <div id="circle-outer" class="circle outer"></div>
             <div id="circle-inner" class="circle inner">
-                <div id="angle-display">XX%</div>
+
+                <div class="bubble-data">
+                    <div class="top-left">
+                        <div class="label">Speed</div>
+                        <div class="value" id="speed-display">12 km/h</div>
+                    </div>
+                    <div class="top-right">
+                        <div class="label">Slope</div>
+                        <div class="value" id="angle-display">5%</div>
+                    </div>
+                    <div class="center">
+                        <div class="label">Power</div>
+                        <div class="value big" id="power-display">250 W</div>
+                    </div>
+                    <div class="bottom-left">
+                        <div class="label">Drag</div>
+                        <div class="value" id="drag-display">80 W</div>
+                    </div>
+                    <div class="bottom-right">
+                        <div class="label">Gravity</div>
+                        <div class="value" id="gravity-display">60 W</div>
+                    </div>
+                </div>
+                <!--<div id="angle-display">XX%</div>-->
             </div>
         </div>
 
         <div id="info-panel">
             <div>β: <span id="info-beta">0.0°</span></div>
             <div>γ: <span id="info-gamma">0.0°</span></div>
-            <div>gx: <span id="info-gx">0.00</span></div>
-            <div>gy: <span id="info-gy">0.00</span></div>
+            <!--<div>gx: <span id="info-gx">0.00</span></div>
+            <div>gy: <span id="info-gy">0.00</span></div>-->
+            <div>lon: <span id="info-lon">0.0°</span></div>
+            <div>lat: <span id="info-lat">0.0°</span></div>
+            <div>alt: <span id="info-alt">0.0 m</span></div>
         </div>
 
+    
+    <!--
+    Let's talk quickly about how I want to implement all of this. This is my idea:
+        1. Define global variables who contain the current data
+        2. Define functions to update the data based on GPS, time and inclination information. These functions will be passed on to event listeners.
+        3. Define function to update the display of the data. This function will be called whenever the data changes (so by the event listener as well).
+    -->
     
         
     <script>
 
+        /**
+        !-- Parameters --!
+        */
+
         let offsetBeta = 0;
         let offsetGamma = 0;
+        let heigth = 1.8;
+        let weight = 75;
+        let bikeWeight = 10;
+
+        /**
+        !-- Live variables --!
+        */
 
         let currentBeta = 0; // without offset here --> used to define the offsets
-        let currentGamma = 0; // without offset here
+        let currentGamma = 0;
 
-        function update() {
+        let longitude = 0;
+        let latitude = 0;
+        let altitude = 0;
+        let speed = 0;
+
+
+
+        /**
+        !-- Update Display --!
+        */
+
+        function updateSlope() {
             beta = currentBeta; // rotation around x-axis
             gamma = currentGamma; // rotation around y-axis
 
@@ -138,16 +229,28 @@
             // let's update the info panel
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
             document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
-            document.getElementById('info-gx').textContent = (-Math.sin(gammaRad)).toFixed(2);
-            document.getElementById('info-gy').textContent = (Math.sin(betaRad)).toFixed(2);
+            //document.getElementById('info-gx').textContent = (-Math.sin(gammaRad)).toFixed(2);
+            //document.getElementById('info-gy').textContent = (Math.sin(betaRad)).toFixed(2);
         }
+
+        function updateGPS() {
+            // let's update the info panel
+            document.getElementById('info-lon').textContent = longitude.toFixed(6) + '°';
+            document.getElementById('info-lat').textContent = latitude.toFixed(6) + '°';
+            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' m';
+        }
+
+
+        /**
+        !-- Event Listenenrs --!
+        */
 
 
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', (event) => {
                 currentBeta = event.beta || 0; // rotation around x-axis
                 currentGamma = event.gamma || 0; // rotation around y-axis
-                update();
+                updateSlope();
             });
         }
 
@@ -156,10 +259,25 @@
             offsetBeta = currentBeta;
             offsetGamma = currentGamma;
             console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
-            update();
+            updateSlope();
         });
 
-        console.log('Level script loaded');
+        if (!('geolocation' in navigator)) {
+            console.error("Geolocation is not supported by this browser.");
+        } else {
+            geoWatchId = navigator.geolocation.watchPosition((position) => {
+                longitude = position.coords.longitude;
+                latitude = position.coords.latitude;
+                altitude = position.coords.altitude || 0; // altitude might be null
+                speed = position.coords.speed || 0; // speed might be null
+
+                updateGPS();
+            });
+        }
+
+        
+
+        console.log("WhattsUp! is ready to go!");
                 
     </script>
 
