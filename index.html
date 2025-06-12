@@ -129,7 +129,7 @@
         function updateLevel(alpha, beta, gamma) {
             beta -= offsetBeta; // apply the offset to beta
             gamma -= offsetGamma; // apply the offset to gamma
-            
+
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
@@ -171,7 +171,7 @@
             });
         }
 
-        const innerBubble = dcument.querySelector('.inner');
+        const innerBubble = document.querySelector('.inner');
         innerBubble.addEventListener('click', () => {
             const [, currentBeta, currentGamma] = getAlphaBetaGamma();
             offsetBeta = currentBeta;
