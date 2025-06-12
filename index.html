@@ -93,8 +93,8 @@
         <div id="info-panel">
             <div>β: <span id="info-beta">0.0°</span></div>
             <div>γ: <span id="info-gamma">0.0°</span></div>
-            <div>gₓ: <span id="info-gx">0.00</span></div>
-            <div>gᵧ: <span id="info-gy">0.00</span></div>
+            <div>gx: <span id="info-gx">0.00</span></div>
+            <div>gy: <span id="info-gy">0.00</span></div>
         </div>
 
     
@@ -130,7 +130,7 @@
             const shiftY = -Math.sin(betaRad) * MAX_SHIFT;
 
             const inner = document.querySelector('.inner');
-            inner.style.transform = `translate(-50%, -50%) translate(${shiftX}%, ${shiftY}%)`;
+            inner.style.transform = `translate(-50%, -50%) translate(${-shiftX}%, ${shiftY}%)`;
 
             // let's update the info panel
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
