@@ -31,7 +31,6 @@
                 transform: translate(-50%, -50%);
                 width: var(--diam-outer);
                 height: var(--diam-outer);
-                overflow: hidden; /*avoid scroll bars when circle goes out of frame*/
             }
 
             .circle {
@@ -206,6 +205,9 @@
             beta -= offsetBeta; // apply the offset to beta
             gamma -= offsetGamma; // apply the offset to gamma
 
+            const inner = document.querySelector('.inner');
+
+
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
@@ -217,14 +219,20 @@
             angleDisplay.textContent = slope + '%';
 
             // let's compute the bubble offset
-            const MAX_SHIFT = 30;
-            const shiftX = Math.sin(gammaRad) * MAX_SHIFT;
-            const shiftY = -Math.sin(betaRad) * MAX_SHIFT;
+            const d = inner.getBoundingClientRect().width; // diameter of the inner bubble
+            const MAX_PCT = 0.30; // maximum offset in percent of the inner bubble diameter
 
-            const inner = document.querySelector('.inner');
+            maxXshift = (vw - d) / 2;
+            maxYshift = (vh - d) / 2;
+            maxXshift = Math.min(maxXshift, d * MAX_PCT);
+            maxYshift = Math.min(maxYshift, d * MAX_PCT);
+        
+            const shiftX = Math.sin(gammaRad) * maxXshift;
+            const shiftY = -Math.sin(betaRad) * maxYshift;
+
             inner.style.transform = `translate(
-                calc(-50% - ${shiftX}%), 
-                calc(-50% + ${shiftY}%)
+                calc(-50% - ${shiftX}px), 
+                calc(-50% + ${shiftY}px)
             )`;
 
             // let's update the info panel
