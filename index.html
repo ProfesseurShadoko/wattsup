@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WattsUp!</title>
+    </head>
+
+    <body>
+        <h1>Test: Oreientation and GPS</h1>
+
+        <p><strong>Orientation:</strong></p>
+        <p>ALpha (z-axis): <span id="alpha">?</span></p>
+        <p>Beta (x-axis): <span id="beta">?</span></p>
+        <p>Gamma (y-axis): <span id="gamma">?</span></p>
+
+        <p><strong>GPS:</strong></p>
+        <p>Latitude: <span id="latitude">?</span></p>
+        <p>Longitude: <span id="longitude">?</span></p>
+        <p>Altitude: <span id="altitude">?</span></p>
+
+
+        <script>
+            function updateOrientation(event) {
+                if (window.DeviceOrientationEvent) {
+                    document.getElementById('alpha').textContent = event.alpha ? event.alpha.toFixed(2) : '?';
+                    document.getElementById('beta').textContent = event.beta ? event.beta.toFixed(2) : '?';
+                    document.getElementById('gamma').textContent = event.gamma ? event.gamma.toFixed(2) : '?';
+                } else {
+                    document.getElementById('alpha').textContent = 'Not supported, try using Chrome';
+                    document.getElementById('beta').textContent = 'Not supported, try using Chrome';
+                    document.getElementById('gamma').textContent = 'Not supported, try using Chrome';
+                }
+            }
+        </script>
+    </body>
+</html>
