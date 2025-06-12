@@ -277,13 +277,25 @@
             // let's update the info panel
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
             document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
+
+            updatePower();
         }
 
         function updateGPS() {
             // let's update the info panel
             document.getElementById('info-lon').textContent = longitude.toFixed(6) + '°';
             document.getElementById('info-lat').textContent = latitude.toFixed(6) + '°';
-            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' m';
+            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' km';
+
+            // let's update the speed display
+            currentSpeed = getAverageFromBuffer(speedBuffer);
+            document.getElementById('speed-display').textContent = Math.round(currentSpeed * 3.6) + ' km/h'; // convert m/s to km/h
+
+            updatePower();
+        }
+
+        function updatePower() {
+            // TODO
         }
 
 
@@ -321,9 +333,10 @@
                 latitude = position.coords.latitude;
                 altitude = position.coords.altitude || 0; // altitude might be null
                 speed = position.coords.speed || 0; // speed might be null
+                addToBuffer(speed, speedBuffer);
 
                 updateGPS();
-            });
+            }, (error) => {}, {enableHighAccuracy: true});
         }
 
         
