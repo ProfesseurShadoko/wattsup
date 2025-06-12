@@ -3,40 +3,171 @@
 <html>
     <head>
         <title>WattsUp!</title>
+
+        <style>
+            /*
+            Make page fullscreen and dark
+            */
+            html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                background-color: #111;
+                overflow: hidden; /*no scrollabr*/
+            }
+
+            /*Define some variables*/
+            :root {
+                --diam-outer: calc(min(100vw, 100vh) * 0.5);
+                --diam-inner: calc(var(--diam-outer) * 0.9);
+            }
+
+            /*Position the two circles*/
+            #circle-container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: var(--diam-outer);
+                height: var(--diam-outer);
+            }
+
+            .circle {
+                position: absolute;
+                top: 50%; left: 50%;
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .outer {
+                width: var(--diam-outer);
+                height: var(--diam-outer);
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+
+            .inner {
+                width: var(--diam-inner);
+                height: var(--diam-inner);
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+
+            #angle-display {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: calc(var(--diam-inner) * 0.2);
+                text-align: center;
+            }
+
+            #info-panel {
+                position: fixed;
+                bottom: 1rem;
+                right: 1rem;
+                background: rgba(0, 0, 0, 0.6);
+                color: #eee;
+                font-family: monospace;
+                font-size: 0.8rem;
+                line-height: 1.2;
+                padding: 0.5rem;
+                border-radius: 0.25rem;
+                pointer-events: none;
+                }
+                #info-panel div {
+                margin: 0.2em 0;
+                }
+
+        </style>
     </head>
 
     <body>
-        <h1>Test: Oreientation and GPS</h1>
+        <div id="circle-container">
+            <div id="circle-outer" class="circle outer"></div>
+            <div id="circle-inner" class="circle inner">
+                <div id="angle-display">XX%</div>
+            </div>
+        </div>
 
-        <p><strong>Orientation:</strong></p>
-        <p>Alpha (z-axis): <span id="alpha">?</span></p>
-        <p>Beta (x-axis): <span id="beta">?</span></p>
-        <p>Gamma (y-axis): <span id="gamma">?</span></p>
+        <div id="info-panel">
+            <div>α: <span id="info-alpha">0.0°</span></div>
+            <div>β: <span id="info-beta">0.0°</span></div>
+            <div>γ: <span id="info-gamma">0.0°</span></div>
+            <div>gₓ: <span id="info-gx">0.00</span></div>
+            <div>gᵧ: <span id="info-gy">0.00</span></div>
+        </div>
 
-        <p><strong>GPS:</strong></p>
-        <p>Latitude: <span id="latitude">?</span></p>
-        <p>Longitude: <span id="longitude">?</span></p>
-        <p>Altitude: <span id="altitude">?</span></p>
+    
+        
+    <script>
+        current_alpha = 0;
+        current_beta = 0;
+        current_gamma = 0; // we will modify these randomly
 
+        // gravity: gx = -sin(gamma), gy = sin(beta) with x and y in the plan of the screen
 
-        <script>
-            function updateOrientation(event) {
-                document.getElementById('alpha').textContent = event.alpha ? event.alpha.toFixed(2) : '?';
-                document.getElementById('beta').textContent = event.beta ? event.beta.toFixed(2) : '?';
-                document.getElementById('gamma').textContent = event.gamma ? event.gamma.toFixed(2) : '?';
-            }
-            
-            function startOrientationTracking() {
-                if (window.DeviceOrientationEvent) {
-                    window.addEventListener('deviceorientation', updateOrientation, false);
-                } else {
-                    document.getElementById('alpha').textContent = 'DeviceOrientationEvent not supported';
-                    document.getElementById('beta').textContent = 'DeviceOrientationEvent not supported';
-                    document.getElementById('gamma').textContent = 'DeviceOrientationEvent not supported';
-                }
-            }
+        function getAlphaBetaGammaRandom() {
+            // random increase of alpha beta gamma
+            current_alpha += Math.random() * 10 - 5; // random change between -5 and +5
+            current_beta += Math.random() * 10 - 5; // random change between -5 and +5
+            current_gamma += Math.random() * 10 - 5; // random change between -5 and +5
 
-            startOrientationTracking();
-        </script>
+            // clamp all values between -45 and 45
+            current_alpha = Math.max(-45, Math.min(45, current_alpha));
+            current_beta = Math.max(-45, Math.min(45, current_beta));
+            current_gamma = Math.max(-45, Math.min(45, current_gamma));
+
+            // return the values
+            return [current_alpha, current_beta, current_gamma];
+        }
+
+        function updateLevel(alpha, beta, gamma) {
+            const betaRad = beta * (Math.PI / 180);
+            const gammaRad = gamma * (Math.PI / 180);
+
+            const theta = Math.acos(Math.cos(betaRad) * Math.cos(gammaRad));
+            const slope = Math.round(Math.atan(theta) * 100); // slope in %
+
+            // let' change the display of text
+            const angleDisplay = document.getElementById('angle-display');
+            angleDisplay.textContent = slope + '%';
+
+            // let's compute the bubble offset
+            const MAX_SHIFT = 40;
+            const shiftX = Math.sin(gammaRad) * MAX_SHIFT;
+            const shiftY = -Math.sin(betaRad) * MAX_SHIFT;
+
+            const inner = document.querySelector('.inner');
+            inner.style.transform = `translate(-50%, -50%) translate(${shiftX}%, ${shiftY}%)`;
+
+            // let's update the info panel
+            document.getElementById('info-alpha').textContent = alpha.toFixed(1) + '°';
+            document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
+            document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
+            document.getElementById('info-gx').textContent = (-Math.sin(gammaRad)).toFixed(2);
+            document.getElementById('info-gy').textContent = (Math.sin(betaRad)).toFixed(2);
+        }
+
+        //setInterval(() => {
+        //    const [a, b, g] = getAlphaBetaGammaRandom();
+        //    updateLevel(a, b, g);
+        //}, 1000);
+
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (event) => {
+                const alpha = event.alpha || 0; // rotation around z-axis
+                const beta = event.beta || 0;   // rotation around x-axis
+                const gamma = event.gamma || 0; // rotation around y-axis
+
+                updateLevel(alpha, beta, gamma);
+            });
+        }
+
+        console.log('Level script loaded');
+                
+    </script>
+
     </body>
+
 </html>
