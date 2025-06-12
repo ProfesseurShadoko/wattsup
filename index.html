@@ -212,8 +212,7 @@
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
-            const theta = Math.acos(Math.cos(betaRad) * Math.cos(gammaRad));
-            const slope = Math.round(Math.atan(theta) * 100); // slope in %
+            const slope = Math.tan(betaRad) * 100; // slope in %
 
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
