@@ -332,7 +332,7 @@
                 longitude = position.coords.longitude;
                 latitude = position.coords.latitude;
                 altitude = position.coords.altitude || 0; // altitude might be null
-                speed = position.coords.speed || 0; // speed might be null
+                speed = position.coords.speed || -0.1; // speed might be null
                 addToBuffer(speed, speedBuffer);
 
                 updateGPS();
