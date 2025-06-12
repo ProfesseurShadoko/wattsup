@@ -227,6 +227,10 @@
             return sum / buffer.length;
         }
 
+        function resetBuffer(buffer) {
+            buffer.length = 0; // clear the buffer
+        }
+
 
         /**
         !-- Update Display --!
@@ -247,7 +251,6 @@
 
             const bufferBetaRad = getAverageFromBuffer(betaBuffer) * (Math.PI / 180);
             currentSlope = Math.round(Math.tan(bufferBetaRad) * 100); // slope in %
-
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
             angleDisplay.textContent = currentSlope + '%';
@@ -306,7 +309,8 @@
             offsetBeta = currentBeta;
             offsetGamma = currentGamma;
             console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
-            updateSlope();
+            resetBuffer(betaBuffer);
+            resetBuffer(gammaBuffer);
         });
 
         if (!('geolocation' in navigator)) {
