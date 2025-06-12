@@ -232,7 +232,7 @@
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
-            const slope = getAverageFromBuffer(slopeBuffer);
+            const slope = Math.round(getAverageFromBuffer(slopeBuffer));
 
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
