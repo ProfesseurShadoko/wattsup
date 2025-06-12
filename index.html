@@ -130,7 +130,10 @@
             const shiftY = -Math.sin(betaRad) * MAX_SHIFT;
 
             const inner = document.querySelector('.inner');
-            inner.style.transform = `translate(-50%, -50%) translate(${-shiftX}%, ${shiftY}%)`;
+            inner.style.transform = `translate(
+                calc(-50% + ${shiftX}%), 
+                calc(-50% + ${shiftY}%)
+            )`;
 
             // let's update the info panel
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
@@ -153,6 +156,7 @@
             offsetBeta = currentBeta;
             offsetGamma = currentGamma;
             console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
+            update();
         });
 
         console.log('Level script loaded');
