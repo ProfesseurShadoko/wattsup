@@ -19,7 +19,7 @@
 
             /*Define some variables*/
             :root {
-                --diam-outer: calc(min(100vw, 100vh) * 0.5);
+                --diam-outer: calc(min(100vw, 100vh) * 0.9);
                 --diam-inner: calc(var(--diam-outer) * 0.9);
             }
 
@@ -84,7 +84,7 @@
                 color: #fff;
                 font-family: sans-serif;
                 pointer-events: none;
-                padding: 15%;            /* <-- inset everything 10% from the border */
+                padding: 13%;            /* <-- inset everything 10% from the border */
                 box-sizing: border-box;  /* <-- make padding count inside the 100% */
             }
 
@@ -103,15 +103,15 @@
 
             /* label vs value styling */
             .bubble-data .label {
-                font-size: 3vmin;
+                font-size: 5vmin;
                 opacity: 0.8;
             }
             .bubble-data .value {
-                font-size: 4vmin;
+                font-size: 7vmin;
             }
 
             .bubble-data .value.big {
-                font-size: 7vmin;
+                font-size: 15vmin;
                 font-weight: bold;
             }
 
@@ -126,11 +126,11 @@
                 <div class="bubble-data">
                     <div class="top-left">
                         <div class="label">Speed</div>
-                        <div class="value" id="speed-display">12 km/h</div>
+                        <div class="value" id="speed-display">120 km/h</div>
                     </div>
                     <div class="top-right">
                         <div class="label">Slope</div>
-                        <div class="value" id="angle-display">5%</div>
+                        <div class="value" id="angle-display">50%</div>
                     </div>
                     <div class="center">
                         <div class="label">Power</div>
@@ -138,11 +138,11 @@
                     </div>
                     <div class="bottom-left">
                         <div class="label">Drag</div>
-                        <div class="value" id="drag-display">80 W</div>
+                        <div class="value" id="drag-display">180 W</div>
                     </div>
                     <div class="bottom-right">
                         <div class="label">Gravity</div>
-                        <div class="value" id="gravity-display">60 W</div>
+                        <div class="value" id="gravity-display">160 W</div>
                     </div>
                 </div>
                 <!--<div id="angle-display">XX%</div>-->
@@ -216,7 +216,7 @@
             angleDisplay.textContent = slope + '%';
 
             // let's compute the bubble offset
-            const MAX_SHIFT = 40;
+            const MAX_SHIFT = 30;
             const shiftX = Math.sin(gammaRad) * MAX_SHIFT;
             const shiftY = -Math.sin(betaRad) * MAX_SHIFT;
 
