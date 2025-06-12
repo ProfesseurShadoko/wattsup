@@ -180,6 +180,7 @@
         let heigth = 1.8;
         let weight = 75;
         let bikeWeight = 10;
+        let averageWindowSeconds = 5; // how many seconds to average the speed and slope over
 
         /**
         !-- Live variables --!
@@ -193,6 +194,25 @@
         let altitude = 0;
         let speed = 0;
 
+        // let's create some value buffers to average physical values over time
+        const slopeBuffer = []; // array of { time: <ms>, value: float }
+        const speedBuffer = [];
+
+        function addToBuffer(value, buffer) {
+            const now = Date.now(); // time in ms, hence the *1000 later
+            buffer.push({ time: now, value: value });
+
+            // remove old values from the buffer
+            while (buffer.length > 0 && (now - buffer[0].time) > averageWindowSeconds * 1000) {
+                buffer.shift();
+            }
+        }
+
+        function getAverageFromBuffer(buffer) {
+            if (buffer.length === 0) return 0;
+            const sum = buffer.reduce((acc, item) => acc + item.value, 0);
+            return sum / buffer.length;
+        }
 
 
         /**
@@ -212,7 +232,7 @@
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
-            const slope = Math.tan(betaRad) * 100; // slope in %
+            const slope = getAverageFromBuffer(slopeBuffer);
 
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
@@ -253,12 +273,14 @@
         /**
         !-- Event Listenenrs --!
         */
-
-
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', (event) => {
                 currentBeta = event.beta || 0; // rotation around x-axis
                 currentGamma = event.gamma || 0; // rotation around y-axis
+                
+                correctedBeta = currentBeta - offsetBeta;
+                currentSlope = Math.tan(correctedBeta * (Math.PI / 180)) * 100; // slope in %
+                addToBuffer(currentSlope, slopeBuffer);
                 updateSlope();
             });
         }
