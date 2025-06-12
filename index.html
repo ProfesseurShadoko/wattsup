@@ -31,6 +31,7 @@
                 transform: translate(-50%, -50%);
                 width: var(--diam-outer);
                 height: var(--diam-outer);
+                overflow: hidden; /* hide overflow of inner circle */
             }
 
             .circle {
@@ -222,8 +223,8 @@
             const d = inner.getBoundingClientRect().width; // diameter of the inner bubble
             const MAX_PCT = 0.30; // maximum offset in percent of the inner bubble diameter
 
-            maxXshift = (vw - d) / 2;
-            maxYshift = (vh - d) / 2;
+            let maxXshift = (vw - d) / 2;
+            let maxYshift = (vh - d) / 2;
             maxXshift = Math.min(maxXshift, d * MAX_PCT);
             maxYshift = Math.min(maxYshift, d * MAX_PCT);
         
@@ -238,8 +239,6 @@
             // let's update the info panel
             document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
             document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
-            //document.getElementById('info-gx').textContent = (-Math.sin(gammaRad)).toFixed(2);
-            //document.getElementById('info-gy').textContent = (Math.sin(betaRad)).toFixed(2);
         }
 
         function updateGPS() {
