@@ -101,6 +101,10 @@
     
         
     <script>
+
+        offsetBeta = 0;
+        offsetGamma = 0;
+
         current_alpha = 0;
         current_beta = 0;
         current_gamma = 0; // we will modify these randomly
@@ -123,6 +127,9 @@
         }
 
         function updateLevel(alpha, beta, gamma) {
+            beta -= offsetBeta; // apply the offset to beta
+            gamma -= offsetGamma; // apply the offset to gamma
+            
             const betaRad = beta * (Math.PI / 180);
             const gammaRad = gamma * (Math.PI / 180);
 
@@ -163,6 +170,14 @@
                 updateLevel(alpha, beta, gamma);
             });
         }
+
+        const innerBubble = dcument.querySelector('.inner');
+        innerBubble.addEventListener('click', () => {
+            const [, currentBeta, currentGamma] = getAlphaBetaGamma();
+            offsetBeta = currentBeta;
+            offsetGamma = currentGamma;
+            console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
+        });
 
         console.log('Level script loaded');
                 
