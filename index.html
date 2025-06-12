@@ -246,7 +246,7 @@
             const gammaRad = gamma * (Math.PI / 180);
 
             const bufferBetaRad = getAverageFromBuffer(betaBuffer) * (Math.PI / 180);
-            currentSlope = Math.tan(bufferBetaRad) * 100; // slope in %
+            currentSlope = Math.round(Math.tan(bufferBetaRad) * 100); // slope in %
 
             // let' change the display of text
             const angleDisplay = document.getElementById('angle-display');
