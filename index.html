@@ -331,9 +331,9 @@
             currentGravityPower = getValueFromBuffer(gravityPowerBuffer, 2);
             currentRollingPower = getValueFromBuffer(rollingPowerBuffer, 2);
 
-            document.getElementById('drag-display').textContent = Math.round(currentDragPower) + ' W';
-            document.getElementById('gravity-display').textContent = Math.round(currentGravityPower) + ' W';
-            document.getElementById('power-display').textContent = Math.round(currentPower) + ' W';
+            document.getElementById('drag-display').textContent = Math.round(currentDragPower / 10) * 10 + ' W';
+            document.getElementById('gravity-display').textContent = Math.round(currentGravityPower / 10) * 10 + ' W';
+            document.getElementById('power-display').textContent = Math.round(currentPower / 10) * 10 + ' W';
 
             
         }
