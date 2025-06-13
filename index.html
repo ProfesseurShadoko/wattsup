@@ -200,6 +200,12 @@
         const speedBuffer = []; // speed in m/s
         const altitudeBuffer = []; // altitude in meters
 
+        const powerBuffer = []; // power in watts --> I shouldn't need it, they are computed on already averaged values, but I need to make them smoother anyway...
+        const dragPowerBuffer = [];
+        const gravityPowerBuffer = [];
+        const rollingPowerBuffer = [];
+
+
         // Live vars (aka last readings)
         let longitude = 0, latitude = 0, altitude = 0, speed = 0;
         let gy = 0, gz = 0, beta = 0, gamma = 0, pitch = 0; // pitch and beta are pretty much the same, but beta is the gyroscope reading and pitch is the gravity-based reading.
@@ -237,8 +243,11 @@
 
         const FILTERS = [averageFilter, medianFilter, emaFilter];
 
-        function getValueFromBuffer(buffer) {
-            return FILTERS[1](buffer); // maybe at some point we will switch to a different filter.
+        function getValueFromBuffer(buffer, filterIndex = 1) {
+            // let's start by updating the buffer
+            addToBuffer(null, buffer); // this will remove old values, and add nothing.
+
+            return FILTERS[filterIndex](buffer); // maybe at some point we will switch to a different filter.
         }
         function resetBuffer(buffer) {
             buffer.length = 0;
@@ -310,10 +319,23 @@
             currentGravityPower = getGravityPower();
             currentRollingPower = getRollingPower();
             currentPower = currentDragPower + currentGravityPower + currentRollingPower;
+            // let's update the buffers
+            addToBuffer(currentPower, powerBuffer);
+            addToBuffer(currentDragPower, dragPowerBuffer);
+            addToBuffer(currentGravityPower, gravityPowerBuffer);
+            addToBuffer(currentRollingPower, rollingPowerBuffer);
+
+            // let's retrieve the averaged values back
+            currentPower = getValueFromBuffer(powerBuffer, 2); // using the EMA filter for smoothness
+            currentDragPower = getValueFromBuffer(dragPowerBuffer, 2);
+            currentGravityPower = getValueFromBuffer(gravityPowerBuffer, 2);
+            currentRollingPower = getValueFromBuffer(rollingPowerBuffer, 2);
 
             document.getElementById('drag-display').textContent = Math.round(currentDragPower) + ' W';
             document.getElementById('gravity-display').textContent = Math.round(currentGravityPower) + ' W';
             document.getElementById('power-display').textContent = Math.round(currentPower) + ' W';
+
+            
         }
 
         // Initial calls
