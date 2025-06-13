@@ -281,7 +281,8 @@
         function updateGPS() {
             document.getElementById('info-lon').textContent = longitude.toFixed(6) + '°';
             document.getElementById('info-lat').textContent = latitude.toFixed(6) + '°';
-            document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' m';
+            
+            document.getElementById('info-alt').textContent = (altitude===null ? 0:altitude).toFixed(1) + ' m';
 
             document.getElementById('speed-display').textContent = Math.round(getValueFromBuffer(speedBuffer) * 3.6) + ' km/h';
         }
