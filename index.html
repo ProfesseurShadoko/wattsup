@@ -287,8 +287,8 @@
             maxXshift = Math.min(maxXshift, d * MAX_PCT);
             maxYshift = Math.min(maxYshift, d * MAX_PCT);
             
-            const shiftX = Math.sin(correctedBamma) * maxXshift;
-            const shiftY = -Math.sin(correctedGamma) * maxYshift;
+            const shiftX = Math.sin(correctedGamma) * maxXshift;
+            const shiftY = -Math.sin(correctedBeta) * maxYshift;
 
             bubble.style.transform = `translate(
                 calc(-50% - ${shiftX}px), 
