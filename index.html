@@ -238,7 +238,7 @@
         const FILTERS = [averageFilter, medianFilter, emaFilter];
 
         function getValueFromBuffer(buffer) {
-            return FILTERS[2](buffer); // maybe at some point we will switch to a different filter.
+            return FILTERS[1](buffer); // maybe at some point we will switch to a different filter.
         }
         function resetBuffer(buffer) {
             buffer.length = 0;
