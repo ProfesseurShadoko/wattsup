@@ -214,13 +214,31 @@
                 buffer.shift();
             }
         }
-        function getAverageFromBuffer(buffer) {
+        function averageFilter(buffer) {
             if (!buffer.length) return 0;
             const sum = buffer.reduce((a, e) => a + e.value, 0);
             return sum / buffer.length;
         }
+        function medianFilter(buffer) {
+            if (!buffer.length) return 0;
+            const values = buffer.map(e => e.value).sort((a, b) => a - b);
+            const mid = Math.floor(values.length / 2);
+            return values.length % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+        }
+        function emaFilter(buffer) {
+            alpha = 0.1;
+            if (!buffer.length) return 0;
+            let ema = buffer[0].value; // start with the first value
+            for (let i = 1; i < buffer.length; i++) {
+                ema = alpha * buffer[i].value + (1 - alpha) * ema;
+            }
+            return ema;
+        }
+
+        const FILTERS = [averageFilter, medianFilter, emaFilter];
+
         function getValueFromBuffer(buffer) {
-            return getAverageFromBuffer(buffer); // maybe at some point we will switch to a different filter.
+            return FILTERS[2](buffer); // maybe at some point we will switch to a different filter.
         }
         function resetBuffer(buffer) {
             buffer.length = 0;
