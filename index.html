@@ -62,14 +62,14 @@
                 background: rgba(0, 0, 0, 0.6);
                 color: #eee;
                 font-family: monospace;
-                font-size: 0.8rem;
+                font-size: 2vmin;
                 line-height: 1.2;
                 padding: 0.5rem;
                 border-radius: 0.25rem;
                 pointer-events: none;
                 }
                 #info-panel div {
-                margin: 0.2em 0;
+                    margin: 0.2em 0;
                 }
             
             .bubble-data {
@@ -172,237 +172,195 @@
     <script>
 
         /**
-        !-- Parameters --!
+        * -- Parameters --
         */
 
+        // Calibration offsets for gravity vector
         let offsetBeta = 0;
         let offsetGamma = 0;
-        const averageWindowSeconds = 5; // how many seconds to average the speed and slope over
+        let offsetPitch = 0;
+        const averageWindowSeconds = 5; // seconds to average slope and speed
 
+        // Rider & bike constants
         const height = 1.8; // m
         const weight = 75; // kg
         const bikeWeight = 10; // kg
 
-        const Cd = 1.0; // for cyclist on aerobars
+        // Aerodynamics & rolling resistance
+        const Cd = 1.0; // for cyclist on aerobars, else 1.2
         const Crr = 0.005; // rolling resistance coefficient --> value from wikipedia, couldn't find anything better :(
         const rho0 = 1.225; // kg/m^3 --> air density at sea level
         const L = 0.0065; // K/m --> temperature gradient in the atmosphere
-        const T0 = 288.15; // K --> standard temperature at sea level
+        const T0 = 288.15; // K --> standard temperature at sea level (15°C)
         const R = 287.05; // J/(kg*K) --> gas constant for dry air (aka R/M with M molar mass)
         const g = 9.807; // m/s^2 --> gravity acceleration
 
-        // --------------------------------------------------------------------------------------------------------------------------------------------------------
+        // Buffers for averaging {time, value}
+        const pitchBuffer = []; // angle of the slope in radians
+        const speedBuffer = []; // speed in m/s
+        const altitudeBuffer = []; // altitude in meters
 
-        /**
-        !-- Live variables --!
-        */
+        // Live vars (aka last readings)
+        let longitude = 0, latitude = 0, altitude = 0, speed = 0;
+        let gy = 0, gz = 0, beta = 0, gamma = 0, pitch = 0; // pitch and beta are pretty much the same, but beta is the gyroscope reading and pitch is the gravity-based reading.
 
-        let currentBeta = 0; // without offset here --> used to define the offsets
-        let currentGamma = 0;
-
-
-        let longitude = 0;
-        let latitude = 0;
-        let altitude = 0;
-        let speed = 0;
-
-        /**
-        !-- Buffer Variables --!
-        */
-        // let's create some value buffers to average physical values over time
-        const betaBuffer = []; // array of { time: <ms>, value: float }
-        const gammaBuffer = [];
-        const speedBuffer = [];
-        const altitudeBuffer = [];
-
-        let currentSlope = 0;
-        let currentSpeed = 0;
-        let currentGravityPower = 0;
-        let currentDragPower = 0;
-        let currentRollingPower = 0;
-        let currentPower = 0;
-
-
+        // Helpers
         function addToBuffer(value, buffer) {
             const now = Date.now(); // time in ms, hence the *1000 later
-            buffer.push({ time: now, value: value });
-
-            // remove old values from the buffer
-            while (buffer.length > 0 && (now - buffer[0].time) > averageWindowSeconds * 1000) {
+            if (value != null && value != undefined) {
+                buffer.push({ time: now, value });
+            }
+            while (buffer.length && now - buffer[0].time > averageWindowSeconds * 1000) {
                 buffer.shift();
             }
         }
-
         function getAverageFromBuffer(buffer) {
-            if (buffer.length === 0) return 0;
-            const sum = buffer.reduce((acc, item) => acc + item.value, 0);
+            if (!buffer.length) return 0;
+            const sum = buffer.reduce((a, e) => a + e.value, 0);
             return sum / buffer.length;
         }
-
+        function getValueFromBuffer(buffer) {
+            return getAverageFromBuffer(buffer); // maybe at some point we will switch to a different filter.
+        }
         function resetBuffer(buffer) {
-            buffer.length = 0; // clear the buffer
+            buffer.length = 0;
         }
 
+        // Physics models
+        const projectedFrontalArea = 0.0293 * Math.pow(height,0.725) * Math.pow(weight,0.425) + 0.0604;
+        const totalWeight = weight + bikeWeight;
 
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------
-
-        /**
-        !-- Models --!
-        */
-
-        const projectedFrontalArea = 0.0293 * (height**0.725) * (weight**0.425) + 0.0604;
-        const totalWeight = weight + bikeWeight; // total weight of the cyclist and the bike
-        
         function getRho() {
-            altitudeAvg = getAverageFromBuffer(altitudeBuffer);
-            return rho0 * (1 - (L * altitudeAvg) / T0) ** (g / (R * L) - 1);
+            return rho0 * Math.pow(1 - (L * getValueFromBuffer(altitudeBuffer)) / T0, (g/(R*L) -1));
         }
         function getDragPower() {
-            const rho = getRho();
-            return 0.5 * Cd * projectedFrontalArea * rho * currentSpeed**3; // in W
+            return 0.5 * Cd * projectedFrontalArea * getRho() * Math.pow(getValueFromBuffer(speedBuffer),3);
         }
         function getGravityPower() {
-            const slopeRad = getAverageFromBuffer(betaBuffer); // slope in radians
-            return totalWeight * g * Math.sin(slopeRad* (Math.PI / 180)) * currentSpeed; // in W
+            return totalWeight * g * Math.sin(getValueFromBuffer(pitchBuffer) - offsetPitch) * getValueFromBuffer(speedBuffer);
         }
         function getRollingPower() {
-            const slopeRad = getAverageFromBuffer(betaBuffer); // slope in radians
-            return Crr * totalWeight * g * Math.cos(slopeRad * (Math.PI / 180)) * currentSpeed; // in W
+            return Crr * totalWeight * g * Math.cos(getValueFromBuffer(pitchBuffer) - offsetPitch) * getValueFromBuffer(speedBuffer);
         }
 
+        // Display updates
+        function updateSlopeDisplay() {
+            // compute slope percent from averaged pitch
+            document.getElementById('angle-display').textContent = Math.round(Math.tan(getValueFromBuffer(pitchBuffer) - offsetPitch) * 100) + '%';
+        }
 
-        // ---------------------------------------------------------------------------------------------------------------------------------------------------
+        function updateBubbleDisplay() {
+            // first the inf pannel
+            document.getElementById('info-beta').textContent = (beta * 180 / Math.PI).toFixed(1) + '°';
+            document.getElementById('info-gamma').textContent = (gamma * 180 / Math.PI).toFixed(1) + '°';
 
-        /**
-        !-- Update Display --!
-        */
+            // then the bubble display
+            const bubble = document.querySelector('.inner');
+            let correctedBeta = beta - offsetBeta;
+            let correctedGamma = gamma - offsetGamma;
 
-        function updateSlope() {
-            let beta = currentBeta; // rotation around x-axis
-            let gamma = currentGamma; // rotation around y-axis
-
-            beta -= offsetBeta; // apply the offset to beta
-            gamma -= offsetGamma; // apply the offset to gamma
-
-            const inner = document.querySelector('.inner');
-
-
-            const betaRad = beta * (Math.PI / 180);
-            const gammaRad = gamma * (Math.PI / 180);
-
-            const bufferBetaRad = getAverageFromBuffer(betaBuffer) * (Math.PI / 180);
-            currentSlope = Math.round(Math.tan(bufferBetaRad) * 100); // slope in %
-            // let' change the display of text
-            const angleDisplay = document.getElementById('angle-display');
-            angleDisplay.textContent = currentSlope + '%';
-
-            // let's compute the bubble offset
             const vw    = window.innerWidth;
             const vh    = window.innerHeight;
-            const d = inner.getBoundingClientRect().width; // diameter of the inner bubble
+            const d = bubble.getBoundingClientRect().width; // diameter of the inner bubble
             const MAX_PCT = 0.30; // maximum offset in percent of the inner bubble diameter
 
             let maxXshift = (vw - d) / 2;
             let maxYshift = (vh - d) / 2;
             maxXshift = Math.min(maxXshift, d * MAX_PCT);
             maxYshift = Math.min(maxYshift, d * MAX_PCT);
-        
-            const shiftX = Math.sin(gammaRad) * maxXshift;
-            const shiftY = -Math.sin(betaRad) * maxYshift;
+            
+            const shiftX = Math.sin(gamma) * maxXshift;
+            const shiftY = -Math.sin(beta) * maxYshift;
 
-            inner.style.transform = `translate(
+            bubble.style.transform = `translate(
                 calc(-50% - ${shiftX}px), 
                 calc(-50% + ${shiftY}px)
             )`;
-
-            // let's update the info panel
-            document.getElementById('info-beta').textContent = beta.toFixed(1) + '°';
-            document.getElementById('info-gamma').textContent = gamma.toFixed(1) + '°';
-
-            updatePower();
-        }
+        }   
 
         function updateGPS() {
-            // let's update the info panel
             document.getElementById('info-lon').textContent = longitude.toFixed(6) + '°';
             document.getElementById('info-lat').textContent = latitude.toFixed(6) + '°';
             document.getElementById('info-alt').textContent = altitude.toFixed(1) + ' m';
 
-            // let's update the speed display
-            currentSpeed = getAverageFromBuffer(speedBuffer);
-            document.getElementById('speed-display').textContent = Math.round(currentSpeed * 3.6) + ' km/h'; // convert m/s to km/h
-
-            updatePower();
+            document.getElementById('speed-display').textContent = Math.round(getValueFromBuffer(speedBuffer) * 3.6) + ' km/h';
         }
 
-        function updatePower() {
+        function updatePowerDisplay() {
             currentDragPower = getDragPower();
             currentGravityPower = getGravityPower();
             currentRollingPower = getRollingPower();
             currentPower = currentDragPower + currentGravityPower + currentRollingPower;
+
             document.getElementById('drag-display').textContent = Math.round(currentDragPower) + ' W';
             document.getElementById('gravity-display').textContent = Math.round(currentGravityPower) + ' W';
             document.getElementById('power-display').textContent = Math.round(currentPower) + ' W';
         }
 
-
-
-
-
-
-
+        // Initial calls
+        updateBubbleDisplay();
         updateGPS();
-        updateSlope();
+        updateSlopeDisplay();
+        updatePowerDisplay();
 
-        //--------------------------------------------------------------------------------------------------------------------------------
+        // -- Event listeners --
+        // 1) Gravity-based slope
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (event) => {
+                gy = event.accelerationIncludingGravity.y;
+                gz = event.accelerationIncludingGravity.z;
+                pitch = Math.atan2(gy, gz);
+                addToBuffer(pitch, pitchBuffer);
 
-        /**
-        !-- Event Listeners --!
-        */
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (event) => {
-                currentBeta = event.beta || 0; // rotation around x-axis
-                currentGamma = event.gamma || 0; // rotation around y-axis
-                
-                correctedBeta = currentBeta - offsetBeta;
-                correctedGamma = currentGamma - offsetGamma;
-
-                addToBuffer(correctedBeta, betaBuffer);
-                addToBuffer(correctedGamma, gammaBuffer);
-                updateSlope();
+                updateSlopeDisplay();
+                updatePowerDisplay();
             });
         }
 
-        const innerBubble = document.querySelector('.inner');
-        innerBubble.addEventListener('click', () => {
-            offsetBeta = currentBeta;
-            offsetGamma = currentGamma;
-            console.log(`Offsets set: Beta = ${offsetBeta}, Gamma = ${offsetGamma}`);
-            resetBuffer(betaBuffer);
-            resetBuffer(gammaBuffer);
-        });
-
-        if (!('geolocation' in navigator)) {
-            console.error("Geolocation is not supported by this browser.");
-        } else {
-            geoWatchId = navigator.geolocation.watchPosition((position) => {
-                longitude = position.coords.longitude;
-                latitude = position.coords.latitude;
-                altitude = position.coords.altitude || 0; // altitude might be null
-                speed = position.coords.speed || 0; // speed might be null
-                
-                addToBuffer(speed, speedBuffer);
-                addToBuffer(altitude, altitudeBuffer);
-
-                updateGPS();
-            }, (error) => {}, {enableHighAccuracy: true});
+        // 2) Gyroscope-based bubble level
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (event) => {
+                beta = event.beta * Math.PI/180 || 0; // rotation around x-axis (pitch)
+                gamma = event.gamma * Math.PI/180 || 0; // rotation around y-axis (roll)
+                updateBubbleDisplay();
+            });
         }
-
         
 
-        console.log("WhattsUp! is ready to go!");
-                
+        // Calibrate on tap
+        document.querySelector('.inner').addEventListener('click', () => {
+            // set offsets to current gravity
+            offsetBeta = beta;
+            offsetGamma = gamma;
+            offsetPitch = pitch;
+            console.log('Calibration set');
+
+            updateSlopeDisplay();
+            updateBubbleDisplay();
+            updatePowerDisplay();
+        });
+
+        // 3) GPS
+        if ('geolocation' in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                longitude = pos.coords.longitude;
+                latitude  = pos.coords.latitude;
+                altitude  = pos.coords.altitude || null;
+                speed     = pos.coords.speed    || null;
+
+                addToBuffer(speed, speedBuffer);
+                addToBuffer(altitude, altitudeBuffer);
+                updateGPS();
+                updatePowerDisplay();
+            }, null, { enableHighAccuracy: true });
+        } else {
+            console.error('Geolocation not supported');
+        }
+
+        console.log('WhattsUp! ready to roll.');
+
     </script>
+
 
     </body>
 
