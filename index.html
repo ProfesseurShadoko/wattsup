@@ -366,10 +366,39 @@
                 updateBubbleDisplay();
             });
         }
+
+        // 3) Wake lock request // thanks ChatGPT
+        let wakeLock = null;
+
+        // Re-acquire wake on visibility change
+        if ('wakeLock' in navigator) {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && wakeLock !== null) {
+            navigator.wakeLock.request('screen')
+                .then(lock => {
+                wakeLock = lock;
+                console.log('Wake Lock re-acquired after visibility change');
+                })
+                .catch(err => {
+                console.error('Failed to re-acquire wake lock:', err);
+                });
+            }
+        });
+        }
+
+        async function requestWakeLock() {
+            if (wakeLock != null) return; // already acquired, don't call function twice
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock acquired');
+            } catch (err) {
+                console.error(`Could not acquire wake lock: ${err.name}, ${err.message}`);
+            }
+        }
         
 
-        // Calibrate on tap
-        document.querySelector('.inner').addEventListener('click', () => {
+        // 4) Calibrate on tap
+        document.querySelector('.inner').addEventListener('click', async () => {
             // set offsets to current gravity
             offsetBeta = beta;
             offsetGamma = gamma;
@@ -382,9 +411,15 @@
             updateSlopeDisplay();
             updateBubbleDisplay();
             updatePowerDisplay();
+
+            if ('wakeLock' in navigator) {
+                await requestWakeLock();
+            } else {
+                console.warn('Wake Lock API not supported on this browser');
+            }
         });
 
-        // 3) GPS
+        // 5) GPS
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition((pos) => {
                 longitude = pos.coords.longitude;
